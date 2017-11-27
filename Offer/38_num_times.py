@@ -55,23 +55,33 @@ def get_first_k(numbers, length, k, start, end):
     # 注意到这里的递归。前面三项都是不变得，变得始终只是start, 和 end 的结果。
     return get_first_k(numbers, length, k, start, end)
 
-# def get_last_k(numbers, length, k, start, end):
-#     if start > end:
-#         return -1
-#
-#     mid_index = (start + end) // 2
-#     mid_val = numbers[mid_index]
-#
-#     if mid_val == k:
-#         if (mi)
 
+def get_last_k(numbers, length, k, start, end):
+    if start > end:
+        return -1
+
+    mid_index = (start + end) // 2
+    mid_val = numbers[mid_index]
+
+    if mid_val == k:
+        if (mid_index > 0 and numbers[mid_index + 1] != k) or mid_index == 0:
+            return mid_index
+        else:
+            start = mid_index + 1
+    elif mid_val > k:
+        end = mid_index - 1
+    else:
+        start = mid_index + 1
+
+    return get_last_k(numbers, length, k, start, end)
 
 
 if __name__ == '__main__':
     nums = [1, 3, 5, 5, 5,  7, 8, 9, 15, 15, 22, 31, 31, 31, 45, 88]
     length = len(nums)
-    k = 15
+    k = 5
     start = 0
     end = length - 1
-    res = get_first_k(nums, length, k, start, end)
-    print(res)
+    res1 = get_first_k(nums, length, k, start, end)
+    res2 = get_last_k(nums, length, k, start, end)
+    print("%d 出现的次数为： %d"  %(k, res2 - res1 + 1))
