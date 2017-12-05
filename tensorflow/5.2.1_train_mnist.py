@@ -37,9 +37,9 @@ def inference(input_tensor, avg_class, weight1, biases1, weight2, biases2):
         layer1 = tf.nn.relu(tf.matmul(input_tensor, weight1) + biases1)
         return tf.matmul(layer1, weight2) + biases2
     else:
-        layer1 = tf.nn.relu(tf.matmul(input_tensor, avg_class(weight1)) +
-                            avg_class(biases1))
-        return tf.matmul(layer1, avg_class(weight1)) + avg_class(biases1)
+        layer1 = tf.nn.relu(tf.matmul(input_tensor, avg_class.average(weight1)) +
+                            avg_class.average(biases1))
+        return tf.matmul(layer1, avg_class.average(weight2)) + avg_class.average(biases2)
 
 
 # mnist的类别是啥？
@@ -70,4 +70,79 @@ def train(mnist):
     # 注意后面False的使用
     global_step = tf.Variable(0, trainable=False)
 
+    # 平滑问题
+    variable_averages = tf.train.ExponentialMovingAverage(
+        MOVING_AVERAGE_DECAY, global_step
+    )
 
+    # 找所有的训练数据
+    variable_averages_op = variable_averages.apply(tf.trainable_variables())
+
+    # 再考虑使用了滑动平均后的前向传播
+    average_y = inference(x, variable_averages, weight1, biases1, weight2, biases2)
+
+    # 再考虑损失函数的问题
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=y, labels=tf.argmax(y_, 1))
+    cross_entropy_mean = tf.reduce_mean(cross_entropy)
+
+    # TODO:这地方的正则化有点问题，找不到相应的函数
+    regularizer = tf.contrib.layers.l2_regularizer(REGULARIZATION_RATE)
+    regularization = regularizer(weight1) + regularizer(weight2)
+    loss = cross_entropy_mean + regularization
+
+    # 再设置学习速率
+    learning_rate = tf.train.exponential_decay(
+        LEARNING_RATE_BASE,
+        global_step,
+        # batch方法，过完一遍整个数据集需要的迭代次数，
+        mnist.train.num_examples / BATCH_SIZE,
+        # 在在外层定义的这个学习衰减速率
+        LEARNING_RATE_DECAY
+    )
+
+    # 这里的训练次数什么意思？
+    # TODO:得到的结果是什么？
+    train_step = tf.train.GradientDescentOptimizer(learning_rate).\
+        minimize(loss, global_step=global_step)
+
+    # 每过一遍，反向更新参数
+    # TODO:这地方代码什么意思？为什么下面代码要搞个精确率呢？不是有了损失函数吗？
+    with tf.control_dependencies([train_step, variable_averages_op]):
+        train_op = tf.no_op(name="train")
+
+    correct_prediction = tf.equal(tf.argmax(average_y, 1), tf.argmax(y_, 1))
+    accuracy =tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+    # with在这个函数训练的里面
+    with tf.Session() as sess:
+        tf.global_variables_initializer().run()
+
+        # feed是供给的意思
+        validate_feed = {x: mnist.validation.images,
+                         y_:mnist.validation.labels}
+
+        test_feed = {x:mnist.test.images,
+                     y_:mnist.test.labels}
+
+        for i in range(TRAINING_STEPS):
+            if i % 1000 == 0:
+                validate_acc = sess.run(accuracy, validate_feed)
+                print("%d training step(s), validation accuracy"
+                      "using average model is %g" %(i, validate_acc))
+
+            # 每一轮都会有个新的batch数据
+            xs, ys = mnist.train.next_batch(BATCH_SIZE)
+            sess.run(train_op, feed_dict={x:xs, y_:ys})
+
+        test_acc = sess.run(accuracy, test_feed)
+        print("%d training step(s), test accuracy"
+              "using average model is %g" % (i, test_acc))
+
+
+def main(argv = None):
+    mnist = input_data.read_data_sets("D:/Python/Demo_tensorflow/chapter5/MNIST_data", one_hot=True)
+    train(mnist)
+
+
+if __name__ == '__main__':
+    tf.app.run()
