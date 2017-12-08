@@ -3,7 +3,7 @@
 """
 @Author: Kimmyzhang
 @Email: 902227553.com 
-@File: 7_queue_with_stack.py
+@File: 07_queue_with_stack.py
 @Time: 2017/12/7 17:14
 """
 '''
