@@ -1,15 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-@Author: Kimmyzhang
-@Email: 902227553.com 
-@File: 45_last_num_in_circle.py
-@Time: 2017/12/9 13:32
-"""
-"""
-Q：
-    约瑟夫环问题
-"""
 # TODO：法一：构造一个环形链表
 
 
